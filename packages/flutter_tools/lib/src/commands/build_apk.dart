@@ -2,11 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'dart:math';
+
+import 'package:archive/archive_io.dart';
 import 'package:unified_analytics/unified_analytics.dart';
 
 import '../android/android_builder.dart';
 import '../android/build_validation.dart';
 import '../android/gradle_utils.dart';
+import '../base/process.dart';
 import '../build_info.dart';
 import '../cache.dart';
 import '../globals.dart' as globals;
@@ -48,12 +52,19 @@ class BuildApkCommand extends BuildSubCommand {
             'Generate build files used by flutter but '
             'do not build any artifacts.',
       )
+      ..addFlag(
+        'from-app-bundle',
+        help:
+            'Generate build files used by flutter but '
+            'do not build any artifacts.',
+      )
       ..addMultiOption(
         'target-platform',
         allowed: <String>['android-arm', 'android-arm64', 'android-x64'],
         help: 'The target platform for which the app is compiled.',
       );
     usesTrackWidgetCreation(verboseHelp: verboseHelp);
+    _processUtils = ProcessUtils(logger: logger, processManager: globals.processManager);
   }
 
   BuildMode get _buildMode {
@@ -79,6 +90,7 @@ class BuildApkCommand extends BuildSubCommand {
     'android-arm64',
     'android-x64',
   ];
+
   List<String> get _targetArchs =>
       stringsArg('target-platform').isEmpty
           ? switch (_buildMode) {
@@ -96,6 +108,8 @@ class BuildApkCommand extends BuildSubCommand {
 
   bool get configOnly => boolArg('config-only');
 
+  bool get fromAppBundle => boolArg('from-app-bundle');
+
   @override
   Future<Set<DevelopmentArtifact>> get requiredArtifacts async => <DevelopmentArtifact>{
     DevelopmentArtifact.androidGenSnapshot,
@@ -110,6 +124,8 @@ class BuildApkCommand extends BuildSubCommand {
       "it's recommended to use app bundles or split the APK to reduce the APK size. Learn more at:\n\n"
       ' * https://developer.android.com/guide/app-bundle\n'
       ' * https://developer.android.com/studio/build/configure-apk-splits#configure-abi-split';
+
+  late ProcessUtils _processUtils;
 
   @override
   Future<Event> unifiedAnalyticsUsageValues(String commandPath) async {
@@ -137,12 +153,84 @@ class BuildApkCommand extends BuildSubCommand {
     validateBuild(androidBuildInfo);
     globals.terminal.usesTerminalUi = true;
     final FlutterProject project = FlutterProject.current();
-    await androidBuilder?.buildApk(
-      project: project,
-      target: targetFile,
-      androidBuildInfo: androidBuildInfo,
-      configOnly: configOnly,
-    );
+    if (!fromAppBundle) {
+      await androidBuilder?.buildApk(
+        project: project,
+        target: targetFile,
+        androidBuildInfo: androidBuildInfo,
+        configOnly: configOnly,
+      );
+    } else {
+      await androidBuilder?.buildAab(
+        project: project,
+        target: targetFile,
+        androidBuildInfo: androidBuildInfo,
+        validateDeferredComponents: false,
+        deferredComponentsEnabled: false,
+      );
+
+      final String apksOutput = globals.fs.path.join(
+        getBuildDirectory(),
+        'app',
+        'outputs',
+        'bundle',
+        'release',
+        'app-release.apks',
+      );
+      final String aabOutput = globals.fs.path.join(
+        getBuildDirectory(),
+        'app',
+        'outputs',
+        'bundle',
+        'release',
+        'app-release.aab',
+      );
+      final String universalApkName = 'universal.apk';
+      final String universalOutput = globals.fs.path.join(
+        getBuildDirectory(),
+        'app',
+        'outputs',
+        'bundle',
+        'release',
+        universalApkName,
+      );
+      final String apkOutput = globals.fs.path.join(
+        getBuildDirectory(),
+        'app',
+        'outputs',
+        'flutter-apk',
+        'app-release.apk',
+      );
+
+      _processUtils.runSync(
+        <String>[
+          'bundletool',
+          'build-apks',
+          '--overwrite',
+          '--local-testing',
+          '--mode',
+          'universal',
+          '--bundle',
+          aabOutput,
+          '--output',
+          apksOutput,
+        ],
+        throwOnError: true,
+        verboseExceptions: true,
+      );
+      logger.printBox('Built to $apksOutput');
+
+      final InputFileStream inputStream = InputFileStream(apksOutput);
+      final Archive archive = ZipDecoder().decodeBuffer(inputStream);
+      for (final ArchiveFile file in archive) {
+        if (file.name == universalApkName) {
+          final OutputFileStream outputFileStream = OutputFileStream(universalOutput);
+          file.writeContent(outputFileStream);
+          outputFileStream.close();
+        }
+      }
+      globals.fs.file(universalOutput).renameSync(apkOutput);
+    }
 
     // When an app is successfully built, record to analytics whether Impeller
     // is enabled or disabled. Note that 'computeImpellerEnabled' will default
