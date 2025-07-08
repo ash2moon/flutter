@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 import 'package:meta/meta.dart';
+import 'package:process/process.dart';
 
 import '../android/android_sdk.dart';
 import '../base/file_system.dart';
@@ -29,6 +30,7 @@ class BuildCommand extends FlutterCommand {
     required OperatingSystemUtils osUtils,
     required Logger logger,
     required AndroidSdk? androidSdk,
+    required ProcessManager processManager,
     bool verboseHelp = false,
   }) {
     _addSubcommand(
@@ -39,11 +41,26 @@ class BuildCommand extends FlutterCommand {
         verboseHelp: verboseHelp,
       ),
     );
-    _addSubcommand(BuildApkCommand(logger: logger, verboseHelp: verboseHelp));
-    _addSubcommand(BuildAppBundleCommand(logger: logger, verboseHelp: verboseHelp));
+    _addSubcommand(
+      BuildApkCommand(
+        logger: logger,
+        verboseHelp: verboseHelp,
+        processManager: processManager,
+      ),
+    );
+    _addSubcommand(
+      BuildAppBundleCommand(
+        logger: logger,
+        verboseHelp: verboseHelp,
+      ),
+    );
     _addSubcommand(BuildIOSCommand(logger: logger, verboseHelp: verboseHelp));
     _addSubcommand(
-      BuildIOSFrameworkCommand(logger: logger, buildSystem: buildSystem, verboseHelp: verboseHelp),
+      BuildIOSFrameworkCommand(
+        logger: logger,
+        buildSystem: buildSystem,
+        verboseHelp: verboseHelp,
+      ),
     );
     _addSubcommand(
       BuildMacOSFrameworkCommand(
@@ -52,17 +69,31 @@ class BuildCommand extends FlutterCommand {
         verboseHelp: verboseHelp,
       ),
     );
-    _addSubcommand(BuildIOSArchiveCommand(logger: logger, verboseHelp: verboseHelp));
+    _addSubcommand(
+      BuildIOSArchiveCommand(logger: logger, verboseHelp: verboseHelp),
+    );
     _addSubcommand(BuildBundleCommand(logger: logger, verboseHelp: verboseHelp));
     _addSubcommand(
-      BuildWebCommand(fileSystem: fileSystem, logger: logger, verboseHelp: verboseHelp),
+      BuildWebCommand(
+        fileSystem: fileSystem,
+        logger: logger,
+        verboseHelp: verboseHelp,
+      ),
     );
     _addSubcommand(BuildMacosCommand(logger: logger, verboseHelp: verboseHelp));
     _addSubcommand(
-      BuildLinuxCommand(logger: logger, operatingSystemUtils: osUtils, verboseHelp: verboseHelp),
+      BuildLinuxCommand(
+        logger: logger,
+        operatingSystemUtils: osUtils,
+        verboseHelp: verboseHelp,
+      ),
     );
     _addSubcommand(
-      BuildWindowsCommand(logger: logger, operatingSystemUtils: osUtils, verboseHelp: verboseHelp),
+      BuildWindowsCommand(
+        logger: logger,
+        operatingSystemUtils: osUtils,
+        verboseHelp: verboseHelp,
+      ),
     );
   }
 
