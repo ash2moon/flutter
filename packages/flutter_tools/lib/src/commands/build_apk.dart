@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-
 import 'package:archive/archive_io.dart';
 import 'package:file/src/interface/directory.dart';
 import 'package:file/src/interface/file.dart';
@@ -10,11 +9,9 @@ import 'package:process/process.dart';
 import 'package:unified_analytics/unified_analytics.dart';
 
 import '../android/android_builder.dart';
-import '../android/application_package.dart';
 import '../android/build_validation.dart';
 import '../android/gradle.dart';
 import '../android/gradle_utils.dart';
-import '../application_package.dart';
 import '../base/process.dart';
 import '../build_info.dart';
 import '../cache.dart';
@@ -28,10 +25,8 @@ class BuildApkCommand extends BuildSubCommand {
     required super.logger,
     bool verboseHelp = false,
     required ProcessManager processManager,
-  })
-      : _processUtils = ProcessUtils(
-      logger: logger, processManager: processManager),
-        super(verboseHelp: verboseHelp) {
+  }) : _processUtils = ProcessUtils(logger: logger, processManager: processManager),
+       super(verboseHelp: verboseHelp) {
     addTreeShakeIconsFlag();
     usesTargetOption();
     addBuildModeFlags(verboseHelp: verboseHelp);
@@ -192,19 +187,16 @@ class BuildApkCommand extends BuildSubCommand {
         validateDeferredComponents: false,
         deferredComponentsEnabled: false,
       );
-      final File bundleFile = findBundleFile(
-          project, buildInfo, logger, analytics);
+      final File bundleFile = findBundleFile(project, buildInfo, logger, analytics);
       final Directory bundleDir = bundleFile.parent;
-      final String apksOutput = bundleDir
-          .childFile('app-${_buildMode.cliName}.apks')
-          .path;
+      final String apksOutput = bundleDir.childFile('app-${_buildMode.cliName}.apks').path;
 
       // Whether or not we use universal could be determined by split-per-abi flag.
       // As a proof of concept, we are assuming split-per-abi is false.
       // A single APK is generated when split-per-abi is false.
-      final File expectedApkFile = findExpectedFilesForApk(androidBuildInfo, project).first;
+      final File expectedApkFile =
+          androidGradleBuilder.findExpectedFilesForApk(androidBuildInfo, project).first;
       const String universalApkName = 'universal.apk';
-      final File universalOutput = bundleDir.childFile(universalApkName);
 
       _processUtils.runSync(
         <String>[
@@ -227,20 +219,14 @@ class BuildApkCommand extends BuildSubCommand {
       final Archive archive = ZipDecoder().decodeBytes(bytes);
       for (final ArchiveFile file in archive) {
         if (file.name == universalApkName) {
-          if (!universalOutput.parent.existsSync()) {
-            universalOutput.parent.createSync(recursive: true);
+          if (!expectedApkFile.parent.existsSync()) {
+            expectedApkFile.parent.createSync(recursive: true);
           }
-          universalOutput.writeAsBytesSync(file.content as List<int>);
+          expectedApkFile.writeAsBytesSync(file.content as List<int>);
         }
       }
 
-      if (!expectedApkFile.existsSync()) {
-        expectedApkFile.parent.createSync(recursive: true);
-      }
-      globals.fs.file(universalOutput).renameSync(expectedApkFile.path);
-
-      await androidGradleBuilder.calculateShaAndProcessApks(
-          project, androidBuildInfo);
+      await androidGradleBuilder.calculateShaAndProcessApks(project, androidBuildInfo);
     }
 
     // When an app is successfully built, record to analytics whether Impeller
