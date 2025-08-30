@@ -211,6 +211,11 @@ abstract class RunCommandBase extends FlutterCommand with DeviceBasedDevelopment
         FlutterOptions.kWebWasmFlag,
         help: 'Compile to WebAssembly rather than JavaScript.\n$kWasmMoreInfo',
         negatable: false,
+      )
+      ..addFlag(
+        'enable-gradle-managed-install',
+        negatable: false,
+        help: 'Let Gradle manage Android app installation. This can be faster in some environments.',
       );
     usesWebOptions(verboseHelp: verboseHelp);
     usesTargetOption();
@@ -245,6 +250,7 @@ abstract class RunCommandBase extends FlutterCommand with DeviceBasedDevelopment
   bool get enableVulkanValidation => boolArg('enable-vulkan-validation');
   bool get uninstallFirst => boolArg('uninstall-first');
   bool get enableEmbedderApi => boolArg('enable-embedder-api');
+  bool get enableGradleManagedInstall => boolArg('enable-gradle-managed-install');
 
   @override
   bool get refreshWirelessDevices => true;
@@ -313,6 +319,7 @@ abstract class RunCommandBase extends FlutterCommand with DeviceBasedDevelopment
         enableEmbedderApi: enableEmbedderApi,
         usingCISystem: usingCISystem,
         debugLogsDirectoryPath: debugLogsDirectoryPath,
+        enableGradleManagedInstall: enableGradleManagedInstall,
       );
     } else {
       return DebuggingOptions.enabled(
@@ -382,6 +389,7 @@ abstract class RunCommandBase extends FlutterCommand with DeviceBasedDevelopment
         enableDevTools: boolArg(FlutterCommand.kEnableDevTools),
         ipv6: boolArg(FlutterCommand.ipv6Flag),
         printDtd: boolArg(FlutterGlobalOptions.kPrintDtd, global: true),
+        enableGradleManagedInstall: enableGradleManagedInstall,
       );
     }
   }
