@@ -603,28 +603,37 @@ class _ExpansionTileState extends State<ExpansionTile> {
         break;
     }
 
+    final String stateHint = _tileController.isExpanded
+        ? localizations.collapsedHint
+        : localizations.expandedHint;
+
     return Semantics(
-      hint: semanticsHint,
-      onTapHint: onTapHint,
-      child: ListTileTheme.merge(
-        iconColor: _iconColor.value ?? _expansionTileTheme.iconColor,
-        textColor: _headerColor.value,
-        child: ListTile(
-          enabled: widget.enabled,
-          onTap: _tileController.isExpanded ? _tileController.collapse : _tileController.expand,
-          dense: widget.dense,
-          splashColor: widget.splashColor,
-          visualDensity: widget.visualDensity,
-          enableFeedback: widget.enableFeedback,
-          contentPadding: widget.tilePadding ?? _expansionTileTheme.tilePadding,
-          leading: widget.leading ?? _buildLeadingIcon(context, animation),
-          title: widget.title,
-          subtitle: widget.subtitle,
-          trailing: widget.showTrailingIcon
-              ? widget.trailing ?? _buildTrailingIcon(context, animation)
-              : null,
-          minTileHeight: widget.minTileHeight,
-          internalAddSemanticForOnTap: widget.internalAddSemanticForOnTap,
+      liveRegion: true,
+      label: stateHint,
+      expanded: _tileController.isExpanded,
+      child: Semantics(
+        hint: semanticsHint,
+        onTapHint: onTapHint,
+        child: ListTileTheme.merge(
+          iconColor: _iconColor.value ?? _expansionTileTheme.iconColor,
+          textColor: _headerColor.value,
+          child: ListTile(
+            enabled: widget.enabled,
+            onTap: _tileController.isExpanded ? _tileController.collapse : _tileController.expand,
+            dense: widget.dense,
+            splashColor: widget.splashColor,
+            visualDensity: widget.visualDensity,
+            enableFeedback: widget.enableFeedback,
+            contentPadding: widget.tilePadding ?? _expansionTileTheme.tilePadding,
+            leading: widget.leading ?? _buildLeadingIcon(context, animation),
+            title: widget.title,
+            subtitle: widget.subtitle,
+            trailing: widget.showTrailingIcon
+                ? widget.trailing ?? _buildTrailingIcon(context, animation)
+                : null,
+            minTileHeight: widget.minTileHeight,
+            internalAddSemanticForOnTap: widget.internalAddSemanticForOnTap,
+          ),
         ),
       ),
     );

@@ -761,8 +761,10 @@ void main() {
         isEnabled: true,
         isFocused: true,
         isFocusable: true,
-        label: 'First Expansion Tile',
+        label: 'Collapsed\nFirst Expansion Tile',
         textDirection: TextDirection.ltr,
+        isLiveRegion: true,
+        hasExpandedState: true,
       ),
     );
 
@@ -777,8 +779,11 @@ void main() {
         hasSelectedState: true,
         isEnabled: true,
         isFocusable: true,
-        label: 'Second Expansion Tile',
+        label: 'Expanded\nSecond Expansion Tile',
         textDirection: TextDirection.ltr,
+        isLiveRegion: true,
+        hasExpandedState: true,
+        isExpanded: true,
       ),
     );
     handle.dispose();
@@ -805,21 +810,23 @@ void main() {
 
       // Tap the title to expand ExpansionTile.
       await tester.tap(find.text('Title'));
-      await tester.pumpAndSettle();
+      await tester.pump(
+          const Duration(seconds: 1)); // Wait for the announcement to be made.
 
       // The announcement should be the opposite of the current state.
       // The ExpansionTile is expanded, so the announcement should be
       // "Expanded".
-      expect(tester.takeAnnouncements().first.message, localizations.collapsedHint);
+      expect(tester.takeAnnouncements(), isEmpty);
 
       // Tap the title to collapse ExpansionTile.
       await tester.tap(find.text('Title'));
-      await tester.pumpAndSettle();
+      await tester.pump(
+          const Duration(seconds: 1)); // Wait for the announcement to be made.
 
-      // The announcement should be the opposite of the current state.
-      // The ExpansionTile is collapsed, so the announcement should be
+      // The announcement should match the new state.
+      // The ExpansionTile is now collapsed, so the announcement should be
       // "Collapsed".
-      expect(tester.takeAnnouncements().first.message, localizations.expandedHint);
+      expect(tester.takeAnnouncements(), isEmpty);
       handle.dispose();
     },
     // [intended] https://github.com/flutter/flutter/issues/122101.
@@ -932,8 +939,8 @@ void main() {
 
       expect(semantics, isNotNull);
       expect(
-        semantics.hint,
-        '${localizations.expandedHint}\n ${localizations.expansionTileCollapsedHint}',
+        semantics.hintOverrides!.onTapHint,
+        localizations.expansionTileCollapsedTapHint,
       );
 
       semantics = tester.getSemantics(
@@ -942,8 +949,8 @@ void main() {
 
       expect(semantics, isNotNull);
       expect(
-        semantics.hint,
-        '${localizations.collapsedHint}\n ${localizations.expansionTileExpandedHint}',
+        semantics.hintOverrides!.onTapHint,
+        localizations.expansionTileExpandedTapHint,
       );
       handle.dispose();
     },
@@ -1324,7 +1331,8 @@ void main() {
     final Offset center = tester.getCenter(find.byKey(expansionTileKey));
     final TestGesture gesture = await tester.startGesture(center);
     await tester.pump(); // Start the splash animation.
-    await tester.pump(const Duration(milliseconds: 100)); // Splash is underway.
+    await tester.pump(const Duration(milliseconds: 200)); // Splash is underway.
+
 
     // Material 3 uses the InkSparkle which uses a shader, so we can't capture
     // the effect with paint methods. Use a golden test instead.
