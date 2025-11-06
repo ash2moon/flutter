@@ -541,17 +541,21 @@ class _ExpansionTileState extends State<ExpansionTile> {
         ? localizations.collapsedHint
         : localizations.expandedHint;
 
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      // TODO(tahatesser): This is a workaround for VoiceOver interrupting
-      // semantic announcements on iOS. https://github.com/flutter/flutter/issues/122101.
-      _timer?.cancel();
-      _timer = Timer(const Duration(seconds: 1), () {
-        SemanticsService.sendAnnouncement(View.of(context), stateHint, textDirection);
+    if (MediaQuery.of(context).supportsAnnounce) {
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        // TODO(tahatesser): This is a workaround for VoiceOver interrupting
+        // semantic announcements on iOS. https://github.com/flutter/flutter/issues/122101.
         _timer?.cancel();
-        _timer = null;
-      });
-    } else {
-      SemanticsService.sendAnnouncement(View.of(context), stateHint, textDirection);
+        _timer = Timer(const Duration(seconds: 1), () {
+          SemanticsService.sendAnnouncement(
+              View.of(context), stateHint, textDirection);
+          _timer?.cancel();
+          _timer = null;
+        });
+      } else {
+        SemanticsService.sendAnnouncement(
+            View.of(context), stateHint, textDirection);
+      }
     }
     widget.onExpansionChanged?.call(_tileController.isExpanded);
   }
@@ -604,7 +608,11 @@ class _ExpansionTileState extends State<ExpansionTile> {
       _ => _tileController.isExpanded ? localizations.collapsedHint : localizations.expandedHint,
     };
 
-    return Semantics(
+    final String stateHint = _tileController.isExpanded
+        ? localizations.collapsedHint
+        : localizations.expandedHint;
+
+    final Widget listTileWidget = Semantics(
       hint: semanticsHint,
       onTapHint: onTapHint,
       child: ListTileTheme.merge(
@@ -628,6 +636,13 @@ class _ExpansionTileState extends State<ExpansionTile> {
           internalAddSemanticForOnTap: widget.internalAddSemanticForOnTap,
         ),
       ),
+    );
+
+    return MediaQuery.supportsAnnounceOf(context) ? listTileWidget : Semantics(
+      liveRegion: true,
+      label: stateHint,
+      accessiblityFocusBlockType: AccessiblityFocusBlockType.blockNode,
+      child: listTileWidget,
     );
   }
 
